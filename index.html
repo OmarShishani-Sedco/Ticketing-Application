@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ticketing App</title>
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <link rel="icon" type="image/png" href="assets/images/ticket.png" />
+  </head>
+  <body>
+    <div id="loader-overlay">
+      <div class="spinner"></div>
+    </div>
+
+    <div class="app-container">
+      <header>
+        <div class="header-left">
+          <h1 id="bank-name"></h1>
+          <h2 id="branch-name"></h2>
+        </div>
+        <div id="current-datetime">
+          <span id="datetime"></span>
+        </div>
+      </header>
+      <main id="main-content">
+        <div id="button-container">
+          <!-- Dynamically generated buttons will be inserted here -->
+        </div>
+      </main>
+    </div>
+
+    <!-- Modal for displaying messages -->
+    <div id="message-modal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <p id="modal-text"></p>
+      </div>
+    </div>
+
+    <script type="module" src="assets/js/script.js"></script>
+  </body>
+</html>
