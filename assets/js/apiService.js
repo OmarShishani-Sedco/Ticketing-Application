@@ -1,19 +1,13 @@
 // --- Configuration Constants ---
 const BASE_URL = 'https://www.bankconfigurationportal.com';
 const BANK_NAME = 'Arab Bank';
+const BANK_NAME_AR = 'البنك العربي';
 const BRANCH_ID = '66';
-const BRANCH_NAME = 'Main Branch';
 const USERNAME = 'arabbankuser';
 const PASSWORD = 'asdasdasd';
-const TOKEN_REFRESH_LEEWAY = 60 * 1000; // 1 minute
-
-// --- State Management ---
-let currentAccessToken = null;
-let currentRefreshToken = null;
-let tokenExpiryTime = null;
 
 /**
- * Authenticates with the API and stores the tokens.
+ * Authenticates with the API and stores the tokens in localStorage.
  */
 async function authenticate() {
     const response = await fetch(`${BASE_URL}/api/auth/token`, {
@@ -28,9 +22,9 @@ async function authenticate() {
     }
 
     const tokenData = await response.json();
-    currentAccessToken = tokenData.access_token;
-    currentRefreshToken = tokenData.refresh_token;
-    tokenExpiryTime = Date.now() + (tokenData.expires_in * 60 * 1000);
+    localStorage.setItem('accessToken', tokenData.access_token);
+    localStorage.setItem('refreshToken', tokenData.refresh_token);
+
     console.log('Authentication successful.');
 }
 
@@ -38,23 +32,61 @@ async function authenticate() {
  * Refreshes the access token using the refresh token.
  */
 async function refreshAccessToken() {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+        throw new Error('No refresh token available for refresh.');
+    }
+
     try {
         const response = await fetch(`${BASE_URL}/api/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken: currentRefreshToken })
+            body: JSON.stringify({ refreshToken: refreshToken })
         });
 
         if (!response.ok) throw new Error('Token refresh failed.');
 
         const tokenData = await response.json();
-        currentAccessToken = tokenData.access_token;
-        tokenExpiryTime = Date.now() + (tokenData.expires_in * 60 * 1000);
+        localStorage.setItem('accessToken', tokenData.access_token);
         console.log('Access token refreshed successfully.');
+
     } catch (error) {
-        console.error('Token refresh failed. Attempting full re-authentication.', error);
-        await authenticate(); // Re-authenticate if refresh fails
+        console.error('Token refresh failed. Clearing tokens and forcing re-authentication.', error);
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        await authenticate(); 
     }
+}
+
+/**
+ * A wrapper for fetch that handles authentication and token refreshing.
+ * @param {string} url The URL to fetch.
+ * @returns {Promise<Response>} The fetch response.
+ */
+async function fetchWithAuth(url) {
+    let response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+            'Content-Type': 'application/json'
+        }
+    });
+
+    if (response.status === 401) {
+        console.log('Access token expired or invalid. Refreshing...');
+        await refreshAccessToken();
+
+        // Retry the original request with the new token
+        response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+    }
+
+    return response;
 }
 
 /**
@@ -62,15 +94,7 @@ async function refreshAccessToken() {
  * @returns The screen data.
  */
 export async function fetchScreenData() {
-    if (!currentAccessToken || Date.now() > tokenExpiryTime - TOKEN_REFRESH_LEEWAY) {
-        console.log('Token is invalid, expired, or nearing expiry. Refreshing...');
-        await refreshAccessToken();
-    }
-
-    const response = await fetch(`${BASE_URL}/api/screen-design?branchId=${BRANCH_ID}&onlyAllocated=true`, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${currentAccessToken}` }
-    });
+    const response = await fetchWithAuth(`${BASE_URL}/api/screen-design?branchId=${BRANCH_ID}&onlyAllocated=true`);
 
     if (!response.ok) {
         const errorText = await response.text();
@@ -81,11 +105,21 @@ export async function fetchScreenData() {
 }
 
 /**
- * Initializes the API service by authenticating.
+ * Initializes the API service by authenticating if no valid token exists.
  */
 export async function initializeApiService() {
-    await authenticate();
+    const token = localStorage.getItem('accessToken');
+
+    // Authenticate only if there's no token.
+    if (!token) {
+        console.log('No token found in storage. Authenticating...');
+        await authenticate();
+    } else {
+        console.log('Token found in storage. Skipping authentication.');
+    }
 }
 
 // Export constants for the UI module to use
-export { BANK_NAME, BRANCH_NAME };
+export { BANK_NAME, BANK_NAME_AR };
+
+

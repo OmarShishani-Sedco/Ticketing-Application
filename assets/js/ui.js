@@ -4,20 +4,36 @@ const bankNameElement = document.getElementById('bank-name');
 const branchNameElement = document.getElementById('branch-name');
 const buttonsContainer = document.getElementById('button-container');
 const dateTimeElement = document.getElementById('datetime');
-const modal = document.getElementById('message-modal');
-const modalText = document.getElementById('modal-text');
-const closeButton = document.querySelector('.close-button');
+const langEnBtn = document.getElementById('lang-en');
+const langArBtn = document.getElementById('lang-ar');
+const messageContainer = document.getElementById('message-container');
+const messageText = document.getElementById('message-text');
+const backBtn = document.getElementById('back-btn');
+
+const localizedStrings = {
+    en: {
+        connection: 'Cannot connect to the server. It may be offline or there is a network issue. Please Contact support.',
+        ticket: 'A ticket has been issued for '
+    },
+    ar: {
+        connection: 'لا يمكن الاتصال بالخادم. قد يكون غير متصل أو هناك مشكلة في الشبكة. يرجى الاتصال بالدعم.',
+        ticket: 'تم إصدار تذكرة ل'
+    }
+};
+
+
 
 /**
  * Centralized error handler. Logs to console with a timestamp and shows a user-friendly message.
  * @param {string} userMessage - The message to show to the user in the modal.
  * @param {Error} error - The actual error object for console logging.
  * @param {boolean} isCritical - If true, it will replace the body content.
+ * @param {string} lang - The current language ('en' or 'ar').
  */
-export function handleError(userMessage, error, isCritical = false) {
-
+export function handleError(userMessage, error, isCritical = false, lang = 'en', onBack = null) {
+    // Special handling for network errors
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        userMessage = 'Cannot connect to the server. It may be offline or there is a network issue. Please Contact support.';
+        userMessage = localizedStrings[lang].connection;
     }
     // Log detailed error to the console
     console.error(`[${new Date().toLocaleString()}]\n${userMessage}\n`, error);
@@ -25,12 +41,14 @@ export function handleError(userMessage, error, isCritical = false) {
     // Show appropriate message to the user
     if (isCritical) {
         hideLoader(); // Ensure loader is hidden
+        const errorTitle = lang === 'ar' ? 'خطأ في التطبيق' : 'Application Error';
         document.body.innerHTML = `<div class="error-container">
-                                    <h2>Application Error</h2>
+                                    <h2>${errorTitle}</h2>
                                     <p class="error-text">${userMessage}</p>
                                 </div>`;
     } else {
-        showMessage(userMessage);
+        //show message screen with back button that rerenders the main screen
+        showMessageScreen(userMessage, lang, onBack || (() => {}));
     }
 }
 
@@ -44,61 +62,100 @@ export function hideLoader() {
 }
 
 
-function closeModal() {
-    modal.classList.add('fade-out');
-    setTimeout(() => modal.classList.add('hidden'), 300);
-}
-
-/**
- * Displays a message in the modal.
- * @param {string} message The message to display.
- */
-function showMessage(message) {
-    modalText.innerText = message;
-    modal.classList.remove('hidden', 'fade-out');
-}
-
 /**
  * Handles the logic for a button click.
  * @param {Object} button The button data object from the API.
+ * @param {string} lang The current language ('en' or 'ar').
  */
-function handleButtonClick(button) {
+function handleButtonClick(button, lang, onBack) {
     if (button.buttonType === 'ShowMessage') {
-        showMessage(button.messageEnglish);
+        const message = lang === 'ar' ? button.messageArabic : button.messageEnglish;
+
+        showMessageScreen(message, lang, onBack);
     } else if (button.buttonType === 'IssueTicket') {
-        showMessage(`A ticket has been issued for ${button.serviceName}`);
+        const serviceName = lang === 'ar'
+            ? button.serviceNameArabic : button.serviceNameEnglish;
+        showMessageScreen(`${localizedStrings[lang].ticket}${serviceName}`, lang, onBack);
     }
 }
+
 
 /**
  * Renders the entire screen based on data from the API.
  * @param {Object} screenData The screen data object.
- * @param {string} bankName The name of the bank.
- * @param {string} branchName The name of the branch.
+ * @param {Object} names - Object containing bank and branch names in both languages.
+ * @param {string} lang - The current language ('en' or 'ar').
  */
-export function renderScreen(screenData, bankName, branchName) {
-    bankNameElement.innerText = bankName;
-    branchNameElement.innerText = branchName;
+export function renderScreen(screenData, names, lang) {
+    bankNameElement.innerText = lang === 'ar' ? names.bankNameArabic : names.bankNameEnglish;
+    branchNameElement.innerText = lang === 'ar' ? screenData.branchNameArabic : screenData.branchNameEnglish;
     buttonsContainer.innerHTML = '';
 
     // Limit to first 15 buttons
     const buttonsToRender = screenData.buttons.slice(0, 15);
 
     buttonsToRender.forEach(button => {
+        const buttonName = lang === 'ar' ? button.nameArabic : button.nameEnglish;
         const buttonElement = document.createElement('button');
-        buttonElement.innerText = button.nameEnglish;
-        buttonElement.addEventListener('click', () => handleButtonClick(button));
+        buttonElement.innerText = buttonName;
+        buttonElement.addEventListener('click', () =>
+            handleButtonClick(button, lang, () => renderScreen(screenData, names, lang))
+        );
         buttonsContainer.appendChild(buttonElement);
     });
 }
 
-export function updateDateTime() {
-    dateTimeElement.innerText = new Date().toLocaleString();
+/**
+ * Updates the date and time display based on language.
+ * @param {string} lang The current language ('en' or 'ar').
+ */
+export function updateDateTime(lang) {
+    const locale = lang === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US';
+    dateTimeElement.innerText = new Date().toLocaleString(locale);
 }
 
-export function initializeUIEventListeners() {
-    closeButton.addEventListener('click', closeModal);
-    modal.addEventListener('click', (event) => {
-        if (event.target === modal) closeModal();
+/**
+ * Sets up all UI-related event listeners.
+ * @param {function} onLanguageChange - Callback function to execute when language changes.
+ */
+export function initializeUIEventListeners(onLanguageChange) {
+    langEnBtn.addEventListener('click', () => {
+        onLanguageChange('en');
+        langEnBtn.classList.add('active');
+        langArBtn.classList.remove('active');
+    });
+
+    langArBtn.addEventListener('click', () => {
+        onLanguageChange('ar');
+        langArBtn.classList.add('active');
+        langEnBtn.classList.remove('active');
+    });
+}
+
+/**
+ * Shows a message screen and hides the button container.
+ * @param {string} message - The message to display.
+ * @param {string} lang - The current language ('en' or 'ar').
+ * @param {function} onBack - Callback to restore the main screen.
+ */
+export function showMessageScreen(message, lang, onBack) {
+    // Hide buttons, show message
+    buttonsContainer.style.display = 'none';
+    messageContainer.classList.remove('hidden');
+    
+    // Set content
+    messageText.textContent = message;
+
+    // Remove old listeners by cloning
+    backBtn.replaceWith(backBtn.cloneNode(true));
+    const newBackBtn = document.getElementById('back-btn');
+    
+    newBackBtn.textContent = lang === 'ar' ? 'العودة' : 'Back';
+
+    newBackBtn.addEventListener('click', () => {
+        // Hide message, show buttons
+        messageContainer.classList.add('hidden');
+        buttonsContainer.style.display = 'grid';
+        if (onBack) onBack();
     });
 }

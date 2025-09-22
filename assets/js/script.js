@@ -1,40 +1,65 @@
-import { initializeApiService, fetchScreenData, BANK_NAME, BRANCH_NAME } from './apiService.js';
+import { initializeApiService, fetchScreenData, BANK_NAME, BANK_NAME_AR } from './apiService.js';
 import { renderScreen, updateDateTime, initializeUIEventListeners, hideLoader, handleError } from './ui.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    const API_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes
+    let currentLanguage = 'en'; // Default language
+    let currentScreenData = null; // Cache screen data
+
+    const names = {
+        bankNameEnglish: BANK_NAME,
+        bankNameArabic: BANK_NAME_AR,
+    };
+
+    /**
+     * Re-renders the UI with the current data and language.
+     */
+    function refreshUI() {
+        if (currentScreenData) {
+            renderScreen(currentScreenData, names, currentLanguage);
+        }
+        updateDateTime(currentLanguage);
+    }
+
+    /**
+     * Handles language change, updates UI direction, and re-renders.
+     * @param {string} newLang The new language to switch to.
+     */
+    function onLanguageChange(newLang) {
+        if (newLang === currentLanguage) return;
+        currentLanguage = newLang;
+        document.documentElement.lang = newLang;
+        document.documentElement.dir = newLang === 'ar' ? 'rtl' : 'ltr';
+        refreshUI();
+    }
 
     /**
      * Main function to initialize the application.
      */
     async function initializeApp() {
         try {
-            // Set up basic UI elements 
-            initializeUIEventListeners();
-            updateDateTime();
-            setInterval(updateDateTime, 1000);
+            // Set up basic UI elements
+            initializeUIEventListeners(onLanguageChange);
+            updateDateTime(currentLanguage);
+            setInterval(() => updateDateTime(currentLanguage), 1000);
 
             // Authenticate and get initial screen data
             await initializeApiService();
-            const screenData = await fetchScreenData();
-            renderScreen(screenData, BANK_NAME, BRANCH_NAME);
+            
+            // Load initial screen data
+            try {
+                currentScreenData = await fetchScreenData();
+                renderScreen(currentScreenData, names, currentLanguage);
+            } catch (error) {
+
+                handleError('Could not load screen data. Please check the connection.', error, true, currentLanguage);
+            }
 
             hideLoader();
 
-            // Set up a periodic refresh of the screen data
-            setInterval(async () => {
-                try {
-                    const updatedScreenData = await fetchScreenData();
-                    renderScreen(updatedScreenData, BANK_NAME, BRANCH_NAME);
-                } catch (error) {
-                    //  Non-critical errors
-                    handleError('Could not refresh screen data. Please check the connection.', error);
-                }
-            }, API_REFRESH_INTERVAL);
 
         } catch (error) {
             // Critical, blocking errors
-            handleError('Application failed to start. Please contact support.', error, true);
+            handleError('Application failed to start. Please contact support.', error, true, currentLanguage);
         }
     }
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -18,23 +18,27 @@
           <h1 id="bank-name"></h1>
           <h2 id="branch-name"></h2>
         </div>
-        <div id="current-datetime">
-          <span id="datetime"></span>
+        <div class="header-right">
+          <div id="lang-switcher">
+            <button id="lang-en" class="lang-btn active">English</button>
+            <button id="lang-ar" class="lang-btn">العربية</button>
+          </div>
+          <div id="current-datetime">
+            <span id="datetime"></span>
+          </div>
         </div>
       </header>
       <main id="main-content">
         <div id="button-container">
           <!-- Dynamically generated buttons will be inserted here -->
         </div>
+        <div id="message-container" class="message-container hidden">
+          <div class="message-screen">
+            <div id="message-text" class="message-text"></div>
+            <button id="back-btn" class="back-btn"></button>
+          </div>
+        </div>
       </main>
-    </div>
-
-    <!-- Modal for displaying messages -->
-    <div id="message-modal" class="modal-overlay hidden">
-      <div class="modal-content">
-        <span class="close-button">&times;</span>
-        <p id="modal-text"></p>
-      </div>
     </div>
 
     <script type="module" src="assets/js/script.js"></script>
