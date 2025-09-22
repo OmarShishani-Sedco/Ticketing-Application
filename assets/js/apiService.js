@@ -1,19 +1,20 @@
+import { config } from './config.js'; // Import the configuration
+
 // --- Configuration Constants ---
-const BASE_URL = 'https://www.bankconfigurationportal.com';
-const BANK_NAME = 'Arab Bank';
-const BANK_NAME_AR = 'البنك العربي';
-const BRANCH_ID = '66';
-const USERNAME = 'arabbankuser';
-const PASSWORD = 'asdasdasd';
+// All constants are now imported from config.js
 
 /**
  * Authenticates with the API and stores the tokens in localStorage.
  */
 async function authenticate() {
-    const response = await fetch(`${BASE_URL}/api/auth/token`, {
+    const response = await fetch(`${config.BASE_URL}/api/auth/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userName: USERNAME, password: PASSWORD, bankName: BANK_NAME })
+        body: JSON.stringify({ 
+            userName: config.USERNAME, 
+            password: config.PASSWORD, 
+            bankName: config.BANK_NAME 
+        })
     });
 
     if (!response.ok) {
@@ -38,7 +39,7 @@ async function refreshAccessToken() {
     }
 
     try {
-        const response = await fetch(`${BASE_URL}/api/auth/refresh`, {
+        const response = await fetch(`${config.BASE_URL}/api/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refreshToken: refreshToken })
@@ -94,7 +95,7 @@ async function fetchWithAuth(url) {
  * @returns The screen data.
  */
 export async function fetchScreenData() {
-    const response = await fetchWithAuth(`${BASE_URL}/api/screen-design?branchId=${BRANCH_ID}&onlyAllocated=true`);
+    const response = await fetchWithAuth(`${config.BASE_URL}/api/screen-design?branchId=${config.BRANCH_ID}&onlyAllocated=true`);
 
     if (!response.ok) {
         const errorText = await response.text();
@@ -120,6 +121,6 @@ export async function initializeApiService() {
 }
 
 // Export constants for the UI module to use
-export { BANK_NAME, BANK_NAME_AR };
+export const { BANK_NAME, BANK_NAME_AR } = config;
 
 

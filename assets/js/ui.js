@@ -6,6 +6,8 @@ const buttonsContainer = document.getElementById('button-container');
 const dateTimeElement = document.getElementById('datetime');
 const langEnBtn = document.getElementById('lang-en');
 const langArBtn = document.getElementById('lang-ar');
+const mainContent = document.getElementById('main-content');
+const langSwitcherRow = document.querySelector('.lang-switcher-row'); 
 const messageContainer = document.getElementById('message-container');
 const messageText = document.getElementById('message-text');
 const backBtn = document.getElementById('back-btn');
@@ -141,6 +143,8 @@ export function initializeUIEventListeners(onLanguageChange) {
 export function showMessageScreen(message, lang, onBack) {
     // Hide buttons, show message
     buttonsContainer.style.display = 'none';
+    langSwitcherRow.style.display = 'none';
+    mainContent.style.justifyContent = 'center';
     messageContainer.classList.remove('hidden');
     
     // Set content
@@ -156,6 +160,8 @@ export function showMessageScreen(message, lang, onBack) {
         // Hide message, show buttons
         messageContainer.classList.add('hidden');
         buttonsContainer.style.display = 'grid';
+        langSwitcherRow.style.display = 'flex';
+        mainContent.style.justifyContent = 'normal'; 
         if (onBack) onBack();
     });
 }
