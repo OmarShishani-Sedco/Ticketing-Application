@@ -1,0 +1,5 @@
+# Ignore the local configuration file which contains sensitive credentials.
+assets/js/config.js
+
+# Optional: Ignore common development folders/files
+.env
