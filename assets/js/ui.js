@@ -11,6 +11,7 @@ const langSwitcherRow = document.querySelector('.lang-switcher-row');
 const messageContainer = document.getElementById('message-container');
 const messageText = document.getElementById('message-text');
 const backBtn = document.getElementById('back-btn');
+let currentMessageData = null; // Store both languages
 
 const localizedStrings = {
     en: {
@@ -71,13 +72,17 @@ export function hideLoader() {
  */
 function handleButtonClick(button, lang, onBack) {
     if (button.buttonType === 'ShowMessage') {
-        const message = lang === 'ar' ? button.messageArabic : button.messageEnglish;
-
-        showMessageScreen(message, lang, onBack);
+        currentMessageData = {
+            en: button.messageEnglish,
+            ar: button.messageArabic
+        };
+        showMessageScreen(lang === 'ar' ? button.messageArabic : button.messageEnglish, lang, onBack);
     } else if (button.buttonType === 'IssueTicket') {
-        const serviceName = lang === 'ar'
-            ? button.serviceNameArabic : button.serviceNameEnglish;
-        showMessageScreen(`${localizedStrings[lang].ticket}${serviceName}`, lang, onBack);
+        currentMessageData = {
+            en: `${localizedStrings.en.ticket}${button.serviceNameEnglish}`,
+            ar: `${localizedStrings.ar.ticket}${button.serviceNameArabic}`
+        };
+        showMessageScreen(lang === 'ar' ? currentMessageData.ar : currentMessageData.en, lang, onBack);
     }
 }
 
@@ -101,7 +106,7 @@ export function renderScreen(screenData, names, lang) {
         const buttonElement = document.createElement('button');
         buttonElement.innerText = buttonName;
         buttonElement.addEventListener('click', () =>
-            handleButtonClick(button, lang, () => renderScreen(screenData, names, lang))
+            handleButtonClick(button, lang, (currentLang) => renderScreen(screenData, names, currentLang || lang))
         );
         buttonsContainer.appendChild(buttonElement);
     });
@@ -143,7 +148,6 @@ export function initializeUIEventListeners(onLanguageChange) {
 export function showMessageScreen(message, lang, onBack) {
     // Hide buttons, show message
     buttonsContainer.style.display = 'none';
-    langSwitcherRow.style.display = 'none';
     mainContent.style.justifyContent = 'center';
     messageContainer.classList.remove('hidden');
     
@@ -160,8 +164,20 @@ export function showMessageScreen(message, lang, onBack) {
         // Hide message, show buttons
         messageContainer.classList.add('hidden');
         buttonsContainer.style.display = 'grid';
-        langSwitcherRow.style.display = 'flex';
         mainContent.style.justifyContent = 'normal'; 
-        if (onBack) onBack();
+        
+        const currentLang = document.documentElement.lang; 
+        
+        if (onBack) onBack(currentLang);
     });
+}
+
+export function updateMessageLanguage(lang) {
+    if (!currentMessageData) return;
+    
+    // Update message text
+    messageText.textContent = lang === 'ar' ? currentMessageData.ar : currentMessageData.en;
+    
+    // Update back button text
+    document.getElementById('back-btn').textContent = lang === 'ar' ? 'العودة' : 'Back';
 }

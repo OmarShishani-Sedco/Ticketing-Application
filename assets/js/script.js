@@ -1,13 +1,14 @@
-import { initializeApiService, fetchScreenData, BANK_NAME, BANK_NAME_AR } from './apiService.js';
-import { renderScreen, updateDateTime, initializeUIEventListeners, hideLoader, handleError } from './ui.js';
+import { config } from './config.js';
+import { initializeApiService, fetchScreenData } from './apiService.js';
+import { renderScreen, updateDateTime, initializeUIEventListeners, hideLoader, handleError, updateMessageLanguage } from './ui.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     let currentLanguage = 'en'; // Default language
     let currentScreenData = null; // Cache screen data
 
     const names = {
-        bankNameEnglish: BANK_NAME,
-        bankNameArabic: BANK_NAME_AR,
+        bankNameEnglish: config.BANK_NAME,
+        bankNameArabic: config.BANK_NAME_AR,
     };
 
     /**
@@ -29,7 +30,15 @@ document.addEventListener('DOMContentLoaded', () => {
         currentLanguage = newLang;
         document.documentElement.lang = newLang;
         document.documentElement.dir = newLang === 'ar' ? 'rtl' : 'ltr';
-        refreshUI();
+        
+        // Check if we're on the message screen
+        const isMessageVisible = !document.getElementById('message-container').classList.contains('hidden');
+        
+        if (isMessageVisible) {
+            updateMessageLanguage(newLang);
+        } else {
+            refreshUI();
+        }
     }
 
     /**
